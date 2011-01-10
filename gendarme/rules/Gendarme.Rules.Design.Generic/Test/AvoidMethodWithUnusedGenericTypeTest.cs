@@ -34,6 +34,7 @@ using Gendarme.Rules.Design.Generic;
 
 using NUnit.Framework;
 using Test.Rules.Fixtures;
+using System.Diagnostics.CodeAnalysis;
 
 namespace Test.Rules.Design.Generic {
 
@@ -123,7 +124,21 @@ namespace Test.Rules.Design.Generic {
 			public void SingleArray<T> (T [] values)
 			{
 			}
+
+            [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "Test Suppression")]
+            public void FxCopSuppressed<T>()
+            {
+            }
 		}
+
+        [TestFixtureSetUp]
+        public void FixtureSetUp()
+        {
+            //TODO: SuppressMessageEngine.OnCustomAttributes is never called -- FxCopCompatibility rules are never properly loaded
+            //TODO: if you look at the tests under SuppressMessageAttributeTest.cs, you'll see that they do get loaded properly
+            // as OnCustomAttributes *is* called
+            Runner.Engines.Subscribe("Gendarme.Framework.Engines.SuppressMessageEngine");
+        }
 
 		[Test]
 		public void Good ()
@@ -134,7 +149,9 @@ namespace Test.Rules.Design.Generic {
 
 			AssertRuleSuccess<GoodCases> ("Duplicate");
 
-			AssertRuleSuccess<GoodCases> ("SingleArray");
+			AssertRuleSuccess<GoodCases> ("SingleArray");            
+
+            AssertRuleSuccess<GoodCases>("FxCopSuppressed");
 		}
 
 		// from CommonRocks

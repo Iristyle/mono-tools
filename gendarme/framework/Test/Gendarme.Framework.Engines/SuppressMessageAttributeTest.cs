@@ -420,4 +420,42 @@ namespace Test.Framework {
 			AssertRuleFailure<TestCases> ("ReturnValueNotSuppressed");
 		}
 	}
+
+
+    [FxCopCompatibility("FxCopSuppressMethodRuleCategory", "FxCopSuppressMethodRuleCheckId")]
+    public class FxCopSuppressMethodRule : Rule, IMethodRule
+    {
+        public RuleResult CheckMethod(MethodDefinition method)
+        {            
+            return RuleResult.Failure;
+        }
+    }
+        
+
+    [TestFixture]
+    public class FxCopCompatibilitySuppressMessageAttribute_MethodTest : MethodRuleTestFixture<FxCopSuppressMethodRule>
+    {
+        class TestCase
+        {
+            [SuppressMessage("FxCopSuppressMethodRuleCategory", "FxCopSuppressMethodRuleCheckId", Justification = "Test")]
+            public bool MethodDirectlySuppressed<T>(string input) where T : struct
+            {
+                return false;
+            }
+        }    
+
+        [TestFixtureSetUp]
+        public void FixtureSetUp()
+        {
+            Runner.Engines.Subscribe("Gendarme.Framework.Engines.SuppressMessageEngine");
+        }
+        
+        [Test]
+        // cover AttributeTargets.Method
+        public void Methods()
+        {
+            // since the rule is NOT executed, the target (struct) being ignored, the result is DoesNotApply
+            AssertRuleDoesNotApply<TestCase>("MethodDirectlySuppressed");            
+        }
+    }
 }
