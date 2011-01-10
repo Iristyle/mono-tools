@@ -28,6 +28,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Gendarme.Framework;
 using Gendarme.Rules.Design.Generic;
@@ -125,20 +126,20 @@ namespace Test.Rules.Design.Generic {
 			{
 			}
 
-            [SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "Test Suppression")]
-            public void FxCopSuppressed<T>()
-            {
-            }
+			[SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "Test Suppression")]
+			public void FxCopSuppressed<T>()
+			{
+			}
 		}
 
-        [TestFixtureSetUp]
-        public void FixtureSetUp()
-        {
-            //TODO: SuppressMessageEngine.OnCustomAttributes is never called -- FxCopCompatibility rules are never properly loaded
-            //TODO: if you look at the tests under SuppressMessageAttributeTest.cs, you'll see that they do get loaded properly
-            // as OnCustomAttributes *is* called
-            Runner.Engines.Subscribe("Gendarme.Framework.Engines.SuppressMessageEngine");
-        }
+		[TestFixtureSetUp]
+		public void FixtureSetUp()
+		{
+			//TODO: SuppressMessageEngine.OnCustomAttributes is never called -- FxCopCompatibility rules are never properly loaded
+			//TODO: if you look at the tests under SuppressMessageAttributeTest.cs, you'll see that they do get loaded properly
+			// as OnCustomAttributes *is* called
+			Runner.Engines.Subscribe("Gendarme.Framework.Engines.SuppressMessageEngine");
+		}
 
 		[Test]
 		public void Good ()
@@ -151,7 +152,7 @@ namespace Test.Rules.Design.Generic {
 
 			AssertRuleSuccess<GoodCases> ("SingleArray");            
 
-            AssertRuleSuccess<GoodCases>("FxCopSuppressed");
+			AssertRuleSuccess<GoodCases>("FxCopSuppressed");
 		}
 
 		// from CommonRocks
@@ -180,5 +181,35 @@ namespace Test.Rules.Design.Generic {
 			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest> ("Parse", 1);
 			Assert.AreEqual (Severity.Low, Runner.Defects [0].Severity, "Low");
 		}
+
+		public IEnumerable<T> GetValuesOfType<T>() where T : struct
+		{
+			return Enum.GetValues(typeof(T)).OfType<T>();
+		}
+
+		[Test]
+		public void ReturnValue2()
+		{
+			//TODO: I think the rule should either be turned off in this case, or with a severity of low
+			//IMHO, GetValuesOfType<MyEnum>() reads better than GetValuesOfType(typeof(MyEnum))
+			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest>("GetValuesOfType", 1);
+			Assert.AreEqual(Severity.Low, Runner.Defects[0].Severity, "Low");
+		}
+
+		public IList<TEntity> GetList<TEntity>() where TEntity : class
+		{
+			return default (IList<TEntity>);
+		}
+
+		[Test]
+		public void GenericConstraints()
+		{
+			//TODO: I think the rule should either be turned off in this case, or with a severity of low
+			//this is more or less modeled around the .NET Framework DataContext GetTable<T> method
+			// i have similar code in a project that FxCop does not fail with CA1004
+			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest>("GetList", 1);
+			Assert.AreEqual(Severity.Low, Runner.Defects[0].Severity, "Low");
+		}
+
 	}
 }
