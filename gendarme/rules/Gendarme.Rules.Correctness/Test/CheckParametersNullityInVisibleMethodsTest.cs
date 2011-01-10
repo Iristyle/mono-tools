@@ -725,6 +725,12 @@ namespace Tests.Rules.Correctness {
 
 				return false;
 			}
+         
+            public void RegisterDerivedTypesOf<T>(Type type)
+            {
+                if (null == type) { throw new ArgumentNullException("type"); }
+                //RegisterDerivedTypesOf(typeof(T), assembly.GetTypes());
+            }
 		}
 
 		[Test]
@@ -738,5 +744,51 @@ namespace Tests.Rules.Correctness {
 			AssertRuleSuccess<GenericClass> ("Test3Equals");
 			AssertRuleSuccess<GenericClass> ("Test3EqualsDefault");
 		}
+
+        [Test]
+        public void FailingCases()
+        {
+            //when the list of params on overloads doesn't match, it seems to cause issues
+            AssertRuleSuccess<FailingTestsClass>("PublicOverload");
+
+            //if private void PublicAndPrivateNameOverload is changed to another name (or commented), it succeeds 
+            AssertRuleSuccess<FailingTestsClass>("PublicAndPrivateOverload");            
+
+            //there are null checks, yet this fails 
+            AssertRuleSuccess<FailingTestsClass>("ChecksObjectAndMember");                        
+        }
+	}
+
+    public class FailingTestsClass {        
+
+        public void PublicAndPrivateOverload(string name)
+        {
+            if (null == name) { throw new ArgumentNullException("name"); }
+        }
+        
+        private void PublicAndPrivateOverload(Type type)
+        {
+            if (null == type) { throw new ArgumentNullException("type"); }
+        }        
+
+        public void PublicOverload(string name)
+        {
+            if (null == name) { throw new ArgumentNullException("name"); }
+        }
+
+        public void PublicOverload(string name, Type type)
+        {
+            if (null == name) { throw new ArgumentNullException("name"); }
+            if (null == type) { throw new ArgumentNullException("type"); }
+        }
+
+        public void ChecksObjectAndMember(Uri url)
+        {
+            if (null == url) throw new ArgumentNullException("url");
+
+            string requestDetails = null != url && null != url.AbsoluteUri ?
+                String.Format("URL: {0}{1}", url.AbsoluteUri, Environment.NewLine) :
+                string.Empty;
+        }
 	}
 }
