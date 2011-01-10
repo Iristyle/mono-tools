@@ -27,7 +27,7 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-
+using System;
 using Gendarme.Rules.Concurrency;
 
 using NUnit.Framework;
@@ -62,6 +62,10 @@ namespace Test.Rules.Concurrency {
 
 	public class HasPublicNonConstantField {
 		public int Field;
+	}
+
+	public class HasPublicStaticEventHandler {
+		public static EventHandler<EventArgs> MyEvent;
 	}
 
 	[TestFixture]
@@ -115,6 +119,13 @@ namespace Test.Rules.Concurrency {
 		public void TestHasPublicNonConstantField ()
 		{
 			AssertRuleSuccess<HasPublicNonConstantField> ();
+		}
+
+		[Test]
+		public void TestHasPublicEventHandler()
+		{
+			//TODO: AFAIK, add/remove is thread-safe for event handlers, so this rule should not apply in this scenario
+			AssertRuleSuccess<HasPublicStaticEventHandler>();
 		}
 	}
 }
