@@ -725,12 +725,6 @@ namespace Tests.Rules.Correctness {
 
 				return false;
 			}
-         
-            public void RegisterDerivedTypesOf<T>(Type type)
-            {
-                if (null == type) { throw new ArgumentNullException("type"); }
-                //RegisterDerivedTypesOf(typeof(T), assembly.GetTypes());
-            }
 		}
 
 		[Test]
