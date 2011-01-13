@@ -77,6 +77,10 @@ namespace One.Two.Three.Four.Internal {
 	internal interface Internal { }
 }
 
+namespace One.Two.Three.Four.Configuration {
+	internal interface IConfiguration { }
+}
+
 namespace Test.Rules.Naming {
 
 	[TestFixture]
@@ -95,8 +99,9 @@ namespace Test.Rules.Naming {
 		public void Namespaces ()
 		{
 			// 1. Cancelled.ComPlus.Indices.ShouldntBe.Writeable (from UsePreferredTermsTest)
-			// 2. One.Two.Three.Four.Five (from here)
+			// 2. One.Two.Three.Four.Five (from here)			
 			AssertRuleFailure (assembly, 2);
+			//TODO: consider allowing Configuration as a fifth level namespace
 		}
 
 		[Test]
