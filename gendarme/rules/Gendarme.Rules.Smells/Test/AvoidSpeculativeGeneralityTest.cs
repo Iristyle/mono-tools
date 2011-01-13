@@ -126,6 +126,17 @@ namespace Test.Rules.Smells {
 		}
 	}
 
+    public class HelperClass
+    {
+        public string SqlEscape(string sql)
+        {
+            if (null == sql) { throw new ArgumentNullException("sql"); }
+
+            return sql.Replace("'", "''");
+        }
+    }
+
+
 	[TestFixture]
 	public class AvoidSpeculativeGeneralityTest : TypeRuleTestFixture<AvoidSpeculativeGeneralityRule> {
 
@@ -164,5 +175,13 @@ namespace Test.Rules.Smells {
 		{
 			AssertRuleSuccess<NotUnnecessaryDelegatedClass> ();
 		}
+
+        [Test]
+        public void HelperClassThatWrapsFrameworkFunctions()
+        {
+            //TODO: is this really speculative generality??
+            AssertRuleSuccess<HelperClass>();
+        }
+
 	}
 }
