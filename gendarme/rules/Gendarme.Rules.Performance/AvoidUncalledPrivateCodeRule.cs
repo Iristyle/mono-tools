@@ -305,7 +305,8 @@ namespace Gendarme.Rules.Performance {
 		{
 			foreach (Instruction ins in method.Body.Instructions) {
 				MethodReference mr = (ins.Operand as MethodReference);
-				if (mr == null)
+				// avoid CallSite - but do not limit ourselves to Call[virt]+Newobj (e.g. ldftn)
+				if ((mr == null) || (ins.OpCode.Code == Code.Calli))
 					continue;
 
 				TypeReference type = mr.DeclaringType;
