@@ -755,5 +755,24 @@ namespace Tests.Rules.Correctness {
 		{
 			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest> ("ChecksObjectAndMember");                        
 		}
+
+		public void ReassignsRefBeforeCheck(ref object test)
+		{
+			//uncommenting this line makes the test succeed
+			//if (null == test) { throw new ArgumentNullException("test"); }
+
+			//follow this general pattern because of FxCop false positive on CA1062
+			//http://connect.microsoft.com/VisualStudio/feedback/details/560099/ca1062-false-positive-with-byref-arguments
+			object testCopy = test;
+			
+			if (null == testCopy) { throw new ArgumentNullException("test"); }
+			test = testCopy;
+		}
+
+		[Test]
+		public void CanReassignRefBeforeCheck()
+		{
+			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest>("ReassignsRefBeforeCheck");
+		}
 	}
 }
