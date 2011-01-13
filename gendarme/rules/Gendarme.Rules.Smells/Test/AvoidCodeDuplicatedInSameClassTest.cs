@@ -31,6 +31,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.IO;
+using System.Linq;
 using System.Xml;
 
 using Gendarme.Framework;
@@ -41,6 +42,7 @@ using Mono.Cecil.Cil;
 using NUnit.Framework;
 using Test.Rules.Fixtures;
 using Test.Rules.Helpers;
+using System.Globalization;
 
 namespace Test.Rules.Smells {
 
@@ -576,7 +578,7 @@ namespace Test.Rules.Smells {
 				return null;
 			}
 		
-		 	void SetCustomParameters (XmlNode rules)
+			void SetCustomParameters (XmlNode rules)
 			{
 				foreach (XmlElement parameter in rules.SelectNodes ("parameter")) {
 					string ruleName = GetAttribute (parameter, "rule", String.Empty);
@@ -838,5 +840,51 @@ namespace Test.Rules.Smells {
 		{
 			AssertRuleSuccess<AvoidLongMethodsRule> ();
 		}
+
+		class TypeExtensions
+		{
+			public bool IsGenericInterfaceAssignableFrom(Type interfaceType, Type concreteType)
+			{
+				if (null == interfaceType) { throw new ArgumentNullException("interfaceType"); }
+				if (null == concreteType) { throw new ArgumentNullException("concreteType"); }
+
+				if (!interfaceType.IsGenericType || !interfaceType.IsInterface)
+				{
+					throw new ArgumentException("interfaceType must be a generic interface such as IInterface<T>");
+				}
+
+				return concreteType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == interfaceType);
+			}
+
+			public IEnumerable<Type> GetGenericInterfaceTypeParameters(Type interfaceType, Type concreteType)
+			{
+				if (null == interfaceType) { throw new ArgumentNullException("interfaceType"); }
+				if (null == concreteType) { throw new ArgumentNullException("concreteType"); }
+
+				if (!interfaceType.IsGenericType || !interfaceType.IsInterface)
+				{
+					throw new ArgumentException("interfaceType must be a generic interface such as IInterface<T>");
+				}
+
+				var interfaces = concreteType.GetInterfaces().Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == interfaceType).ToList();
+				if (interfaces.Count == 0)
+				{
+					throw new ArgumentException(String.Format(CultureInfo.InvariantCulture, "Interface {0} not implemented by {1}", interfaceType, concreteType), "concreteType");
+				}
+
+				return interfaces[0].GetGenericArguments();
+			}
+		}
+
+		[Test]
+		public void ThrownExceptions()
+		{
+			//TODO: the exception generation / checking code is flagged as duplicated
+			//if the exception throwing code is refactored to a private method, then there are errors about CheckParametersNullityInVisibleMethodsRule
+			AssertRuleSuccess <TypeExtensions>();
+		}
+
 	}
+	
+	
 }
