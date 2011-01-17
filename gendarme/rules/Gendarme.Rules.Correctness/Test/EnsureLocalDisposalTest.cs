@@ -194,6 +194,17 @@ namespace Test.Rules.Correctness {
 			var xslt = new System.Xml.Xsl.XslCompiledTransform ();
 			xslt.Load (XmlTextReader.Create ("foo.xml"));
 		}
+
+		string Success9() {
+			using (StringWriter sw = new StringWriter())
+			{
+				return NestedFluentCall(sw).ToString();
+			}
+		}
+		StringWriter NestedFluentCall(StringWriter stringWriter)
+		{
+			return stringWriter;
+		}
 	}
 
 	[TestFixture]
@@ -269,6 +280,12 @@ namespace Test.Rules.Correctness {
 		public void Success8 ()
 		{
 			AssertRuleSuccess<DisposalCases> ("Success8");
+		}
+
+		[Test]
+		public void Success9()
+		{
+			AssertRuleSuccess<DisposalCases>("Success9");
 		}
 
 		[Test]
