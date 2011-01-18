@@ -774,5 +774,21 @@ namespace Tests.Rules.Correctness {
 		{
 			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest>("ReassignsRefBeforeCheck");
 		}
+
+		public void ChecksIsType(Exception ex)
+		{
+			//only non-nulls may pass
+			if (ex is ArgumentException)
+			{
+				ex.ToString();
+			}            
+		}
+
+		[Test]
+		public void AllowsIsCheck()
+		{
+			AssertRuleSuccess<CheckParametersNullityInVisibleMethodsTest>("ChecksIsType");
+		}
+
 	}
 }
