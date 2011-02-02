@@ -198,5 +198,24 @@ namespace Test.Rules.Exceptions {
 			AssertRuleSuccess<DoNotDestroyStackTraceTest> ("ThrowNewExceptionUsingSameOldLocal");
 			AssertRuleSuccess<DoNotDestroyStackTraceTest> ("ThrowNewExceptionUsingSameOldLocal_WithParameter");
 		}
+
+		public void ThrowCatchThrowNew()
+		{
+			try
+			{
+				throw new NotImplementedException();
+			}
+			catch (Exception)
+			{
+				throw new NotImplementedException();
+			}
+		}
+
+		[Test]
+		public void TestThrowEatThrow()
+		{
+			//this should result in a failure, but instead generates an ArgumentNullException at ExecutionPathFactory line 21
+			AssertRuleFailure<DoNotDestroyStackTraceTest>("ThrowCatchThrowNew");
+		}
 	}
 }
