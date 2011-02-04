@@ -181,6 +181,13 @@ namespace Test.Rules.Maintainability {
 			Type [] types = new Type [0];
 			return Array.IndexOf<Type> (types, type);
 		}
+
+		//TODO: currently a failure of the rule
+		//it wants us to use IReflect, but IReflect doesn't have a GetFields method with 0 parameters like Type does
+		public FieldInfo[] OverloadNotSupportedByInterface(Type type)
+		{
+			return type.GetFields();
+		}
 	}
 
 	public class SpecializedClass {
@@ -275,6 +282,13 @@ namespace Test.Rules.Maintainability {
 		{
 			MemberInfo [] types = new MemberInfo [0];
 			return Array.IndexOf<MemberInfo> (types, type);
+		}
+
+		//type could be IReflect
+		public FieldInfo[] OverloadNotSupportedByInterface(Type type)
+		{
+			//IReflect support this GetFields overload
+			return type.GetFields(BindingFlags.Public);
 		}
 	}
 
@@ -524,6 +538,13 @@ namespace Test.Rules.Maintainability {
 			AssertRuleSuccess<GeneralizedClass> ("GenericMethodArgument");
 			AssertRuleFailure<SpecializedClass> ("GenericMethodArgument");
 			Assert.IsTrue(Runner.Defects [0].Text.IndexOf ("'System.Reflection.MemberInfo'") > 0);
+		}
+
+		[Test]
+		public void OverloadNotSupportedByInterface()
+		{
+			AssertRuleSuccess<GeneralizedClass>("OverloadNotSupportedByInterface");
+			AssertRuleFailure<SpecializedClass>("OverloadNotSupportedByInterface");
 		}
 
 		private bool HasMoreParametersThanAllowed (IMethodSignature method)
