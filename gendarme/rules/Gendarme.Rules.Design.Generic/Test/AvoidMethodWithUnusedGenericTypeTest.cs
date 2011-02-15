@@ -4,7 +4,7 @@
 // Authors:
 //	Sebastien Pouliot <sebastien@ximian.com>
 //
-// Copyright (C) 2008,2010 Novell, Inc (http://www.novell.com)
+// Copyright (C) 2008,2010-2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -35,7 +35,7 @@ using Gendarme.Rules.Design.Generic;
 
 using NUnit.Framework;
 using Test.Rules.Fixtures;
-using System.Diagnostics.CodeAnalysis;
+using System.Collections;
 
 namespace Test.Rules.Design.Generic {
 
@@ -126,19 +126,9 @@ namespace Test.Rules.Design.Generic {
 			{
 			}
 
-			[SuppressMessage("Microsoft.Design", "CA1004:GenericMethodsShouldProvideTypeParameter", Justification = "Test Suppression")]
-			public void FxCopSuppressed<T>()
+			public void GenericParameter<T> (IEnumerable<T> values)
 			{
 			}
-		}
-
-		[TestFixtureSetUp]
-		public void FixtureSetUp()
-		{
-			//TODO: SuppressMessageEngine.OnCustomAttributes is never called -- FxCopCompatibility rules are never properly loaded
-			//TODO: if you look at the tests under SuppressMessageAttributeTest.cs, you'll see that they do get loaded properly
-			// as OnCustomAttributes *is* called
-			Runner.Engines.Subscribe("Gendarme.Framework.Engines.SuppressMessageEngine");
 		}
 
 		[Test]
@@ -150,9 +140,9 @@ namespace Test.Rules.Design.Generic {
 
 			AssertRuleSuccess<GoodCases> ("Duplicate");
 
-			AssertRuleSuccess<GoodCases> ("SingleArray");            
+			AssertRuleSuccess<GoodCases> ("SingleArray");
 
-			AssertRuleSuccess<GoodCases>("FxCopSuppressed");
+			AssertRuleSuccess<GoodCases> ("GenericParameter");
 		}
 
 		// from CommonRocks
@@ -175,41 +165,44 @@ namespace Test.Rules.Design.Generic {
 			return default (T);
 		}
 
+		public IEnumerable<T> ParseList<T> (string s)
+		{
+			return null;
+		}
+
 		[Test]
 		public void ReturnValue ()
 		{
 			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest> ("Parse", 1);
 			Assert.AreEqual (Severity.Low, Runner.Defects [0].Severity, "Low");
+
+			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest> ("ParseList", 1);
+			Assert.AreEqual (Severity.Low, Runner.Defects [0].Severity, "Low");
 		}
 
-		public IEnumerable<T> GetValuesOfType<T>() where T : struct
+		public IEnumerable DelegatesCallToAnotherMethodUsingGeneric<T>(Array incoming)
 		{
-			return Enum.GetValues(typeof(T)).OfType<T>();
+			//this is not the best 'real-world' example -- simplified use case for test
+			//obviously IEnumerable<T> is the better return type here, but assume this test case anyhow
+			return incoming.OfType<T>();
+			//real code example:
+			/*
+				private IHttpHandler CreateHandler<T>() where T: IHttpHandler
+				{
+					var routeHandler = new HttpHandlerRouteHandlerResolver<T>();
+					return routeHandler.GetHttpHandler(A.Dummy<RequestContext>());
+				}
+			*/
 		}
 
 		[Test]
-		public void ReturnValue2()
+		public void DelegatesCall()
 		{
-			//TODO: I think the rule should either be turned off in this case, or with a severity of low
-			//IMHO, GetValuesOfType<MyEnum>() reads better than GetValuesOfType(typeof(MyEnum))
-			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest>("GetValuesOfType", 1);
-			Assert.AreEqual(Severity.Low, Runner.Defects[0].Severity, "Low");
+			//i think this kind of situation should be an AssertRuleSuccess, but at the very least, maybe it becomes a Severity.Low
+			//if the T is being used by a method call nested in the framework for instance, then there's nothing that can be done
+			//if the method is one that we have source for, then Gendarme would cause a violation at that point
+			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest>("DelegatesCallToAnotherMethodUsingGeneric");
+			Assert.AreEqual(Severity.Low, Runner.Defects[0].Severity, "1");
 		}
-
-		public IList<TEntity> GetList<TEntity>() where TEntity : class
-		{
-			return default (IList<TEntity>);
-		}
-
-		[Test]
-		public void GenericConstraints()
-		{
-			//TODO: I think the rule should either be turned off in this case, or with a severity of low
-			//this is more or less modeled around the .NET Framework DataContext GetTable<T> method
-			// i have similar code in a project that FxCop does not fail with CA1004
-			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest>("GetList", 1);
-			Assert.AreEqual(Severity.Low, Runner.Defects[0].Severity, "Low");
-		}
-
 	}
 }
