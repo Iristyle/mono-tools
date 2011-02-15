@@ -61,6 +61,11 @@ namespace Test.Rules.Naming {
 		None,
 		RemoveEmptyEntries
 	}
+
+	public enum Status {
+		One,
+		Two
+	}
 	
 	[TestFixture]
 	public class UseSingularNameInEnumsUnlessAreFlagsTest {
@@ -101,6 +106,14 @@ namespace Test.Rules.Naming {
 			type = assembly.MainModule.GetType ("Test.Rules.Naming.StringSplitOptions");
 			Assert.AreEqual (RuleResult.DoesNotApply, runner.CheckType (type), "RuleResult");
 			Assert.AreEqual (0, runner.Defects.Count, "Count");
+		}
+
+		[Test]
+		public void TestEnumHasSingularNameEndingInS()
+		{
+			type = assembly.MainModule.GetType("Test.Rules.Naming.Status");
+			Assert.AreEqual(RuleResult.Success, runner.CheckType(type), "RuleResult");
+			Assert.AreEqual(0, runner.Defects.Count, "Count");
 		}
 	}
 }
