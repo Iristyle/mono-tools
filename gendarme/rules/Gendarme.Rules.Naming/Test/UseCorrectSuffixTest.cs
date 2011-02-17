@@ -246,6 +246,15 @@ namespace Test.Rules.Naming {
 	public class DictionaryIncorrectDerived<T, V> : DictionaryIncorrect<T, V> {
 	}
 
+	public class CorrectCollectionAndDictionary<T, V> : Dictionary<T, V>, ICollection<V> {
+		public void Add(V item) { throw new NotImplementedException(); }
+		public bool Contains(V item) { throw new NotImplementedException(); }
+		public void CopyTo(V[] array, int arrayIndex) { throw new NotImplementedException(); }
+		public bool IsReadOnly { get { throw new NotImplementedException(); } }
+		public bool Remove(V item) { throw new NotImplementedException(); }
+		public new IEnumerator<V> GetEnumerator() { throw new NotImplementedException(); }
+	}
+
 	[TestFixture]
 	public class UseCorrectSuffixTest : TypeRuleTestFixture<UseCorrectSuffixRule> {
 
@@ -305,7 +314,7 @@ namespace Test.Rules.Naming {
 			AssertRuleSuccess<CorrectICollectionCollection> ();
 		}
 
- 		[Test]
+		[Test]
 		public void TestInterfaceImplementerIncorrectName () 
 		{
 			AssertRuleFailureWithLowConfidence<IncorrectICollectionCol> ();
@@ -323,7 +332,7 @@ namespace Test.Rules.Naming {
 			AssertRuleSuccess<CorrectMultipleInterfaceImplementerCollection> ();
 		}				     
 		
-       		[Test]
+		[Test]
 		public void TestMultipleInterfaceImplementerIncorrectName () 
 		{
 			AssertRuleFailureWithHighConfidence<MultipleInterfaceImplementer> ();
@@ -376,6 +385,8 @@ namespace Test.Rules.Naming {
 		public void GenericDictionary ()
 		{
 			AssertRuleSuccess<CorrectDictionary<int,int>> ();
+			//bug: to be consistent with FxCop, a class implementing IDictionary and ICollection should end in Dictionary
+			AssertRuleSuccess<CorrectCollectionAndDictionary<int, int>>();
 			AssertRuleFailureWithHighConfidence<DictionaryIncorrect<int,int>> ();
 		}
 
