@@ -3,8 +3,10 @@
 //
 // Authors:
 //	Jesse Jones <jesjones@mindspring.com>
+//	Sebastien Pouliot <sebastien@ximian.com>
 //
 // Copyright (C) 2008 Jesse Jones
+// Copyright (C) 2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -85,6 +87,18 @@ namespace Gendarme.Rules.Maintainability {
 		
 		private static OpCodeBitmask LoadStoreFields = new OpCodeBitmask (0x0, 0x3F00000000000000, 0x0, 0x0);
 
+		static bool CheckForNullAssignment (Instruction ins)
+		{
+			Instruction previous = ins.Previous;
+			if (!previous.Is (Code.Ldnull))
+				return false;
+			// handling "ternary if" is always a bit more complex
+			previous = previous.Previous;
+			if ((previous == null) || (previous.OpCode.FlowControl != FlowControl.Branch))
+				return true;
+			return (previous.Offset == ins.Offset);
+		}
+
 		private void CheckMethod (MethodDefinition method)
 		{
 			Log.WriteLine (this, method);	
@@ -101,7 +115,7 @@ namespace Gendarme.Rules.Maintainability {
 							continue;
 						// FIXME: we'd catch more cases (and avoid some false positives) 
 						// if we used a null value tracker.
-						if (ins.Previous != null && ins.Previous.OpCode.Code == Code.Ldnull) {
+						if (CheckForNullAssignment (ins)) {
 							setFields.Add (field);
 							Log.WriteLine (this, "{0} is set to null at {1:X4}", field.Name, ins.Offset);
 						} else {
@@ -152,6 +166,16 @@ namespace Gendarme.Rules.Maintainability {
 				}
 			};
 		}
+
+		void CheckMethods (TypeDefinition type)
+		{
+			if (!type.HasMethods)
+				return;
+
+			IList<MethodDefinition> mc = type.Methods;
+			for (int i = 0; i < mc.Count && nullFields.Count > 0; ++i)
+				CheckMethod (mc [i]);
+		}
 		
 		public RuleResult CheckType (TypeDefinition type)
 		{
@@ -161,7 +185,7 @@ namespace Gendarme.Rules.Maintainability {
 			Log.WriteLine (this);
 			Log.WriteLine (this, "----------------------------------");
 			
-			bool isWinFormControl = usesWinForms && type.Inherits("System.Windows.Forms.Control");
+			bool isWinFormControl = usesWinForms && type.Inherits ("System.Windows.Forms", "Control");
 
 			// All fields start out as always null and unused.
 			foreach (FieldDefinition field in type.Fields) {
@@ -170,10 +194,10 @@ namespace Gendarme.Rules.Maintainability {
 						nullFields.Add (field);
 			}
 
-			if (type.HasMethods) {
-				IList<MethodDefinition> mc = type.Methods;
-				for (int i = 0; i < mc.Count && nullFields.Count > 0; ++i)
-					CheckMethod (mc [i]);
+			CheckMethods (type);
+			if (type.HasNestedTypes) {
+				foreach (TypeDefinition nested in type.NestedTypes)
+					CheckMethods (nested);
 			}
 				
 			// Report a defect if:

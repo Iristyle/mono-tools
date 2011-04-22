@@ -192,12 +192,14 @@ namespace Gendarme.Rules.Maintainability {
 			return ifaceDef;
 		}
 
+		static string [] Empty = new string [0];
+
 		private static MethodSignature GetSignature (MethodReference method)
 		{
 			string name = method.Name;
 			string rtype = GetReturnTypeSignature (method);
 			if (!method.HasParameters)
-				return new MethodSignature (name, rtype);
+				return new MethodSignature (name, rtype, Empty);
 
 			IList<ParameterDefinition> pdc = method.Parameters;
 			int count = pdc.Count;
@@ -213,7 +215,7 @@ namespace Gendarme.Rules.Maintainability {
 				if (pType is GenericParameter)
 					parameters [i] = null; //TODO: constructed mapping?
 				else
-					parameters [i] = pType.FullName;
+					parameters [i] = pType.GetFullName ();
 			}
 			return new MethodSignature (name, rtype, parameters);
 		}
@@ -223,7 +225,7 @@ namespace Gendarme.Rules.Maintainability {
 			//special exception
 			if (!method.HasParameters && (method.Name == "GetEnumerator"))
 				return null;
-			return method.ReturnType.FullName;
+			return method.ReturnType.GetFullName ();
 		}
 
 		private static bool IsSystemObjectMethod (MethodReference method)
@@ -248,7 +250,7 @@ namespace Gendarme.Rules.Maintainability {
 			//HACK: BOO:
 			case "EqualityOperator" :
 				return (method.HasParameters && (method.Parameters.Count == 2) && 
-					(method.DeclaringType.FullName == "Boo.Lang.Runtime.RuntimeServices"));
+					(method.DeclaringType.IsNamed ("Boo.Lang.Runtime", "RuntimeServices")));
 			}
 			return false;
 		}
@@ -260,7 +262,7 @@ namespace Gendarme.Rules.Maintainability {
 
 		private static bool IsIgnoredSuggestionType (TypeReference type)
 		{
-			return ((type.FullName == "System.Object") || IsFromNonGenericCollectionNamespace (type.Namespace));
+			return (type.IsNamed ("System", "Object") || IsFromNonGenericCollectionNamespace (type.Namespace));
 		}
 
 		private static List<MethodSignature> GetSignatures (IEnumerable<StackEntryUsageResult> usageResults)
@@ -283,7 +285,7 @@ namespace Gendarme.Rules.Maintainability {
 
 		private void UpdateParameterLeastType (ParameterReference parameter, IEnumerable<StackEntryUsageResult> usageResults)
 		{
-			int pIndex = parameter.GetSequence () - 1;
+			int pIndex = parameter.Index;
 			int parameterDepth = GetActualTypeDepth (parameter.ParameterType);
 
 			int currentLeastDepth = 0;
@@ -364,7 +366,7 @@ namespace Gendarme.Rules.Maintainability {
 
 				ParameterDefinition parameter = ins.GetParameter (method);
 				// this is `this`, we do not care
-				if ((parameter == null) || (parameter.GetSequence () == 0))
+				if ((parameter == null) || (parameter.Index == -1))
 					continue;
 
 				// is parameter already known ?
@@ -472,7 +474,7 @@ namespace Gendarme.Rules.Maintainability {
 		{
 			foreach (ParameterDefinition parameter in method.Parameters){
 
-				int i = parameter.GetSequence () - 1;
+				int i = parameter.Index;
 				if (null == types_least [i])
 					continue; //argument is not used
 
@@ -538,7 +540,7 @@ namespace Gendarme.Rules.Maintainability {
 			else
 				nRemoveTrail = 3;
 
-			string fullname = type.FullName;
+			string fullname = type.GetFullName ();
 			sb.Append (fullname.Substring (0, fullname.Length - nRemoveTrail));
 			if (count > 0) {
 				int n = 0;

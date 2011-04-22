@@ -71,7 +71,7 @@ namespace Gendarme.Framework.Engines {
 		{
 			// we only need to check the custom attributes if [SuppressMessage] is referenced (note: won't work for mscorlib)
 			AssemblyDefinition assembly = (sender as AssemblyDefinition);
-			if (assembly.MainModule.HasTypeReference (SuppressMessage)) {
+			if (assembly.MainModule.AnyTypeReference ((TypeReference tr) => { return tr.IsNamed ("System.Diagnostics.CodeAnalysis", "SuppressMessageAttribute"); })) {
 				Controller.BuildingCustomAttributes += new EventHandler<EngineEventArgs> (OnCustomAttributes);
 			} else {
 				Controller.BuildingCustomAttributes -= new EventHandler<EngineEventArgs> (OnCustomAttributes);
@@ -103,7 +103,7 @@ namespace Gendarme.Framework.Engines {
 			foreach (CustomAttribute ca in cap.CustomAttributes) {
 				if (!ca.HasConstructorArguments)
 					continue;
-				if (ca.AttributeType.FullName != SuppressMessage)
+				if (!ca.AttributeType.IsNamed ("System.Diagnostics.CodeAnalysis", "SuppressMessageAttribute"))
 					continue;
 
 				var arguments = ca.ConstructorArguments;
@@ -124,9 +124,7 @@ namespace Gendarme.Framework.Engines {
 
 				string target = global ? GetPropertyString (ca, "Target") : null;
 				if (String.IsNullOrEmpty (target)) {
-					IIgnoreList ignore = Controller.Runner.IgnoreList;
-					foreach (string name in mapped_names)
-						ignore.Add (name, token);
+					AddIgnore (token, mapped_names);
 					// continue loop - [SuppressMessage] has AllowMultiple == true
 					continue;
 				} else {
@@ -137,6 +135,36 @@ namespace Gendarme.Framework.Engines {
 			}
 
 			ResolveTargets ();
+		}
+
+		private void AddIgnore (IMetadataTokenProvider token, IEnumerable<string> mapped_names)
+		{
+			IIgnoreList ignore = Controller.Runner.IgnoreList;
+			switch (token.MetadataToken.TokenType) {
+			case TokenType.Property:
+				PropertyDefinition pd = (token as PropertyDefinition);
+				foreach (string name in mapped_names) {
+					ignore.Add (name, pd.GetMethod);
+					ignore.Add (name, pd.SetMethod);
+				}
+				break;
+			case TokenType.Event:
+				EventDefinition ed = (token as EventDefinition);
+				foreach (string name in mapped_names) {
+					ignore.Add (name, ed.AddMethod);
+					ignore.Add (name, ed.RemoveMethod);
+					ignore.Add (name, ed.InvokeMethod);
+					if (ed.HasOtherMethods) {
+						foreach (MethodDefinition md in ed.OtherMethods) {
+							ignore.Add (name, md);
+						}
+					}
+				}
+				break;
+			}
+			// the 'token' itself is always added (i.e. for properties and events too)
+			foreach (string name in mapped_names)
+				ignore.Add (name, token);
 		}
 
 		private void AddTargets (string target, IEnumerable<string> mapped_names)
@@ -172,7 +200,7 @@ namespace Gendarme.Framework.Engines {
 				foreach (ModuleDefinition module in assembly.Modules) {
 					// TODO ...
 					foreach (TypeDefinition type in module.GetAllTypes ()) {
-						if (targets.TryGetValue (type.FullName, out rules))
+						if (targets.TryGetValue (type.GetFullName (), out rules))
 							Add (type, rules);
 
 						if (type.HasMethods) {
@@ -185,11 +213,11 @@ namespace Gendarme.Framework.Engines {
 			targets.Clear ();
 		}
 
-		private void ResolveMethod (IMetadataTokenProvider method)
+		private void ResolveMethod (MemberReference method)
 		{
 			HashSet<string> rules;
 
-			string m = method.ToString ();
+			string m = method.GetFullName ();
 			m = m.Substring (m.IndexOf (' ') + 1);
 
 			if (targets.TryGetValue (m, out rules))

@@ -3,8 +3,10 @@
 //
 // Authors:
 //	Jesse Jones <jesjones@mindspring.com>
+//	Sebastien Pouliot <sebastien@ximian.com>
 //
 // Copyright (C) 2008 Jesse Jones
+// Copyright (C) 2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -28,8 +30,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
+using System.Linq;
+using System.Threading;
 
 using Gendarme.Rules.Maintainability;
 
@@ -163,10 +165,10 @@ namespace Test.Rules.Maintainability {
 			}
 		}
 
-		private class Ignore1 {
-			private string name;	
-			
-			public Ignore1 (bool flag)
+		private class TernaryIf {
+			private string name;
+
+			public TernaryIf (bool flag)
 			{
 				name = flag ? "hmm" : null;	// we don't handle this properly
 			}
@@ -203,11 +205,78 @@ namespace Test.Rules.Maintainability {
 			AssertRuleFailure<Bad4> (1);
 		}
 
+		class Bug667692a {
+
+			private string [] bar = null;
+
+			public void SetBar (IEnumerable<string> boo)
+			{
+				bar = boo == null ? null : boo.ToArray ();
+			}
+		}
+
+		class Bug667692b {
+
+			private string [] bar = null;
+
+			public void SetBar (IEnumerable<string> boo)
+			{
+				bar = boo != null ? boo.ToArray () : null;
+			}
+		}
+
 		[Test]
-		[Ignore ("we don't track null values")]
-		public void Ignores ()
+		public void MultipleAssignment ()
 		{
-			AssertRuleFailure<Ignore1> (1);
+			AssertRuleSuccess<TernaryIf> ();
+			AssertRuleSuccess<Bug667692a> ();
+			AssertRuleSuccess<Bug667692b> ();
+		}
+
+		// this will create an anonymous method
+		class AnonymousDelegatesAllFields {
+
+			string file;
+
+			void Parse ()
+			{
+				ThreadPool.QueueUserWorkItem (delegate {
+					file = ""; 
+				});
+			}
+
+			void Show ()
+			{
+				Console.WriteLine (file);
+			}
+		}
+
+		// this will create a nested type with the anonymous method
+		class AnonymousDelegatesFieldsAndLocals {
+
+			string file;
+
+			void Parse ()
+			{
+				string local;
+
+				ThreadPool.QueueUserWorkItem (delegate {
+					file = "";
+					local = file;
+				});
+			}
+
+			void Show ()
+			{
+				Console.WriteLine (file);
+			}
+		}
+
+		[Test]
+		public void AnonymousDelegates ()
+		{
+			AssertRuleSuccess<AnonymousDelegatesAllFields> ();
+			AssertRuleSuccess<AnonymousDelegatesFieldsAndLocals> ();
 		}
 	}
 }

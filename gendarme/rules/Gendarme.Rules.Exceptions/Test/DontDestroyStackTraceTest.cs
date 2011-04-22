@@ -199,23 +199,24 @@ namespace Test.Rules.Exceptions {
 			AssertRuleSuccess<DoNotDestroyStackTraceTest> ("ThrowNewExceptionUsingSameOldLocal_WithParameter");
 		}
 
-		public void ThrowCatchThrowNew()
+		// test case from bnc #668925
+		// https://github.com/Iristyle/mono-tools/commit/5516987609de6fdd40f24b91281e95a3b1457ea7
+		// CSC (at least for VS2008) put the ExceptionHandler.HandlerEnd past the last instruction (which cecil dislike)
+
+		public void ThrowCatchThrowNew ()
 		{
-			try
-			{
-				throw new NotImplementedException();
+			try {
+				throw new NotImplementedException ();
 			}
-			catch (Exception)
-			{
-				throw new NotImplementedException();
+			catch (Exception) {
+				throw new NotImplementedException ();
 			}
 		}
 
 		[Test]
-		public void TestThrowEatThrow()
+		public void TestThrowEatThrow ()
 		{
-			//this should result in a failure, but instead generates an ArgumentNullException at ExecutionPathFactory line 21
-			AssertRuleFailure<DoNotDestroyStackTraceTest>("ThrowCatchThrowNew");
+			AssertRuleSuccess<DoNotDestroyStackTraceTest> ("ThrowCatchThrowNew");
 		}
 	}
 }

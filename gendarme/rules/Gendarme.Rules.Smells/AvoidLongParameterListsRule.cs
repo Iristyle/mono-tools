@@ -124,20 +124,20 @@ namespace Gendarme.Rules.Smells {
 			return (method.HasParameters ? method.Parameters.Count : 0) >= MaxParameters;
 		}
 
-		private void CheckConstructor (MethodDefinition constructor)
+		private void CheckConstructor (IMethodSignature constructor)
 		{
 			//Skip enums, interfaces, <Module>, static classes ...
 			//All stuff that doesn't contain a constructor
 			if (constructor == null) 
 				return;
 			if (HasMoreParametersThanAllowed (constructor)) 
-				Runner.Report (constructor, Severity.Medium, Confidence.Normal, "This constructor contains a long parameter list.");
+				Runner.Report (constructor, Severity.Medium, Confidence.High, "This constructor contains a long parameter list.");
 		}
 
-		private void CheckMethod (MethodDefinition method)
+		private void CheckMethod (IMethodSignature method)
 		{
 			if (HasMoreParametersThanAllowed (method))
-				Runner.Report (method, Severity.Medium, Confidence.Normal, "This method contains a long parameter list.");
+				Runner.Report (method, Severity.Medium, Confidence.High, "This method contains a long parameter list.");
 		}
 
 		//TODO: Perhaps we can perform this action with linq instead of
@@ -182,7 +182,7 @@ namespace Gendarme.Rules.Smells {
 			MethodDefinition method = type.GetMethod ("Invoke");
 			// MulticastDelegate inherits from Delegate without overriding Invoke
 			if ((method != null) && HasMoreParametersThanAllowed (method))
-				Runner.Report (type, Severity.Medium, Confidence.Normal, "This delegate contains a long parameter list.");
+				Runner.Report (type, Severity.Medium, Confidence.High, "This delegate contains a long parameter list.");
 			return Runner.CurrentRuleResult;
 		}
 		

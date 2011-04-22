@@ -89,9 +89,6 @@ namespace Gendarme.Rules.BadPractice {
 	[EngineDependency (typeof (OpCodeEngine))]
 	public class DisableDebuggingCodeRule : Rule, IMethodRule {
 
-		private const string ConditionalAttribute = "System.Diagnostics.ConditionalAttribute";
-		private const string Console = "System.Console";
-
 		// note: there can be multiple [Conditional] attribute on a method
 		private static bool HasConditionalAttributeForDebugging (IList<CustomAttribute> cac)
 		{
@@ -101,7 +98,7 @@ namespace Gendarme.Rules.BadPractice {
 				// any attribute without arguments can be skipped
 				if (!ca.HasConstructorArguments)
 					continue;
-				if (ca.AttributeType.FullName == ConditionalAttribute) {
+				if (ca.AttributeType.IsNamed ("System.Diagnostics", "ConditionalAttribute")) {
 					switch (ca.ConstructorArguments [0].Value as string) {
 					case "DEBUG":
 					case "TRACE":
@@ -126,7 +123,9 @@ namespace Gendarme.Rules.BadPractice {
 					// if the module does not reference System.Console then no
 					// method inside it will be calling any Console.write* methods
 					(e.CurrentAssembly.Name.Name == "mscorlib" ||
-					e.CurrentModule.HasTypeReference (Console));
+					e.CurrentModule.AnyTypeReference ((TypeReference tr) => {
+						return tr.IsNamed ("System", "Console");
+					}));
 			};
 		}
 
@@ -153,7 +152,7 @@ namespace Gendarme.Rules.BadPractice {
 
 				// ... to System.Console ...
 				MethodReference mr = (ins.Operand as MethodReference);
-				if (mr.DeclaringType.FullName != Console)
+				if (!mr.DeclaringType.IsNamed ("System", "Console"))
 					continue;
 
 				// ... Write* methods

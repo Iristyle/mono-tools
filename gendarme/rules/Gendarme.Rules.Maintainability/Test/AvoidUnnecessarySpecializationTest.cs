@@ -182,11 +182,9 @@ namespace Test.Rules.Maintainability {
 			return Array.IndexOf<Type> (types, type);
 		}
 
-		//TODO: currently a failure of the rule
-		//it wants us to use IReflect, but IReflect doesn't have a GetFields method with 0 parameters like Type does
-		public FieldInfo[] OverloadNotSupportedByInterface(Type type)
+		public FieldInfo [] OverloadNotSupportedByInterface (Type type)
 		{
-			return type.GetFields();
+			return type.GetFields ();
 		}
 	}
 
@@ -284,11 +282,10 @@ namespace Test.Rules.Maintainability {
 			return Array.IndexOf<MemberInfo> (types, type);
 		}
 
-		//type could be IReflect
-		public FieldInfo[] OverloadNotSupportedByInterface(Type type)
+		public FieldInfo [] OverloadNotSupportedByInterface (Type type)
 		{
 			//IReflect support this GetFields overload
-			return type.GetFields(BindingFlags.Public);
+			return type.GetFields (BindingFlags.Public);
 		}
 	}
 
@@ -540,13 +537,6 @@ namespace Test.Rules.Maintainability {
 			Assert.IsTrue(Runner.Defects [0].Text.IndexOf ("'System.Reflection.MemberInfo'") > 0);
 		}
 
-		[Test]
-		public void OverloadNotSupportedByInterface()
-		{
-			AssertRuleSuccess<GeneralizedClass>("OverloadNotSupportedByInterface");
-			AssertRuleFailure<SpecializedClass>("OverloadNotSupportedByInterface");
-		}
-
 		private bool HasMoreParametersThanAllowed (IMethodSignature method)
 		{
 			return (method.HasParameters ? method.Parameters.Count : 0) >= 1;
@@ -554,15 +544,13 @@ namespace Test.Rules.Maintainability {
 
 		// extracted from AvoidLongParameterListsRule where IMethodSignature was suggested
 		// but could not be cast (when compiled) into Mono.Cecil.IMetadataTokenProvider
-		// the rule select one of the two incompatible interfaces instead of a base type
-		private void CheckConstructor (MethodDefinition constructor)
+		private void CheckConstructor (IMethodSignature constructor)
 		{
 			if (HasMoreParametersThanAllowed (constructor))
 				Runner.Report (constructor, Severity.Medium, Confidence.Normal, "This constructor contains a long parameter list.");
 		}
 
 		[Test]
-		[Ignore ("see self-test.ignore")]
 		public void UncompilableSuggestion ()
 		{
 			AssertRuleSuccess<AvoidUnnecessarySpecializationTest> ("CheckConstructor");
@@ -635,6 +623,13 @@ namespace Test.Rules.Maintainability {
 		public void MultiDimSet ()
 		{
 			AssertRuleSuccess<AvoidUnnecessarySpecializationTest> ("Fill");
+		}
+
+		[Test]
+		public void OverloadNotSupportedByInterface ()
+		{
+			AssertRuleSuccess<GeneralizedClass> ("OverloadNotSupportedByInterface");
+			AssertRuleFailure<SpecializedClass> ("OverloadNotSupportedByInterface", 1);
 		}
 	}
 }

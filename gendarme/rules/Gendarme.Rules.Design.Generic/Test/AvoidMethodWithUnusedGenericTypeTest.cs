@@ -28,14 +28,12 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 using Gendarme.Framework;
 using Gendarme.Rules.Design.Generic;
 
 using NUnit.Framework;
 using Test.Rules.Fixtures;
-using System.Collections;
 
 namespace Test.Rules.Design.Generic {
 
@@ -178,31 +176,6 @@ namespace Test.Rules.Design.Generic {
 
 			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest> ("ParseList", 1);
 			Assert.AreEqual (Severity.Low, Runner.Defects [0].Severity, "Low");
-		}
-
-		public IEnumerable DelegatesCallToAnotherMethodUsingGeneric<T>(Array incoming)
-		{
-			//this is not the best 'real-world' example -- simplified use case for test
-			//obviously IEnumerable<T> is the better return type here, but assume this test case anyhow
-			return incoming.OfType<T>();
-			//real code example:
-			/*
-				private IHttpHandler CreateHandler<T>() where T: IHttpHandler
-				{
-					var routeHandler = new HttpHandlerRouteHandlerResolver<T>();
-					return routeHandler.GetHttpHandler(A.Dummy<RequestContext>());
-				}
-			*/
-		}
-
-		[Test]
-		public void DelegatesCall()
-		{
-			//i think this kind of situation should be an AssertRuleSuccess, but at the very least, maybe it becomes a Severity.Low
-			//if the T is being used by a method call nested in the framework for instance, then there's nothing that can be done
-			//if the method is one that we have source for, then Gendarme would cause a violation at that point
-			AssertRuleFailure<AvoidMethodWithUnusedGenericTypeTest>("DelegatesCallToAnotherMethodUsingGeneric");
-			Assert.AreEqual(Severity.Low, Runner.Defects[0].Severity, "1");
 		}
 	}
 }

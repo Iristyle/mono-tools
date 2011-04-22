@@ -1,10 +1,12 @@
 //
-// Gendarme.Rules.Design.TypesWithDisposableFieldsShouldBeDisposableRule
+// Gendarme.Rules.Correctness.TypesShouldBeDisposableBaseRule
 //
 // Authors:
 //	Andreas Noever <andreas.noever@gmail.com>
+//	Sebastien Pouliot  <sebastien@ximian.com>
 //
 //  (C) 2008 Andreas Noever
+// Copyright (C) 2011 Novell, Inc (http://www.novell.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining
 // a copy of this software and associated documentation files (the
@@ -26,71 +28,46 @@
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
 
-using System;
-using System.Text;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 
 using Mono.Cecil;
-using Mono.Cecil.Cil;
+
 using Gendarme.Framework;
 using Gendarme.Framework.Helpers;
 using Gendarme.Framework.Rocks;
 
-namespace Gendarme.Rules.Design {
+namespace Gendarme.Rules.Correctness {
 
-	/// <summary>
-	/// This rule will fire if a type contains disposable fields but does not implement
-	/// <c>System.IDisposable</c>.
-	/// </summary>
-	/// <example>
-	/// Bad examples:
-	/// <code>
-	/// class DoesNotImplementIDisposable {
-	///	IDisposable field;
-	/// }
-	/// 
-	/// class AbstractDispose : IDisposable {
-	///	IDisposable field;
-	///	
-	///	// the field should be disposed in the type that declares it
-	///	public abstract void Dispose ();
-	/// }
-	/// </code>
-	/// </example>
-	/// <example>
-	/// Good example:
-	/// <code>
-	/// class Dispose : IDisposable {
-	///	IDisposable field;
-	///	
-	///	public void Dispose ()
-	///	{
-	///		field.Dispose ();
-	///	}
-	/// }
-	/// </code>
-	/// </example>
+	public abstract class TypesShouldBeDisposableBaseRule : Rule, ITypeRule {
 
-	[Problem ("This type contains disposable field(s) but doesn't implement IDisposable.")]
-	[Solution ("Implement IDisposable and free the disposable field(s) in the Dispose method.")]
-	[FxCopCompatibility ("Microsoft.Design", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable")]
-	public class TypesWithDisposableFieldsShouldBeDisposableRule : Rule, ITypeRule {
+		protected TypesShouldBeDisposableBaseRule ()
+		{
+			FieldCandidates = new HashSet<FieldDefinition> ();
+		}
 
-		private const string AbstractTypeMessage = "Field implement IDisposable. Type should implement a non-abstract Dispose() method";
-		private const string TypeMessage = "Field implement IDisposable. Type should implement a Dispose() method";
-		private const string AbstractDisposeMessage = "Some field(s) implement IDisposable. Making this method abstract shifts the reponsability of disposing those fields to the inheritors of this class.";
+		protected HashSet<FieldDefinition> FieldCandidates { get; private set; }
+
+		protected abstract string AbstractTypeMessage { get; }
+		protected abstract string TypeMessage { get; }
+		protected abstract string AbstractDisposeMessage { get; }
 
 		static bool IsAbstract (MethodDefinition method)
 		{
 			return ((method != null) && (method.IsAbstract));
 		}
 
+		protected abstract void CheckMethod (MethodDefinition method, bool abstractWarning);
+
+		protected abstract bool FieldTypeIsCandidate (TypeDefinition type);
+
 		public RuleResult CheckType (TypeDefinition type)
 		{
+			// that will cover interfaces, delegates too
+			if (!type.HasFields)
+				return RuleResult.DoesNotApply;
+
 			// rule doesn't apply to enums, interfaces, structs, delegates or generated code
-			if (type.IsEnum || type.IsInterface || type.IsValueType || type.IsDelegate () || type.IsGeneratedCode ())
+			if (type.IsEnum || type.IsValueType || type.IsGeneratedCode ())
 				return RuleResult.DoesNotApply;
 
 			MethodDefinition explicitDisposeMethod = null;
@@ -98,7 +75,7 @@ namespace Gendarme.Rules.Design {
 
 			bool abstractWarning = false;
 
-			if (type.Implements ("System.IDisposable")) {
+			if (type.Implements ("System", "IDisposable")) {
 				implicitDisposeMethod = type.GetMethod (MethodSignatures.Dispose);
 				explicitDisposeMethod = type.GetMethod (MethodSignatures.DisposeExplicit);
 
@@ -109,6 +86,8 @@ namespace Gendarme.Rules.Design {
 				}
 			}
 
+			FieldCandidates.Clear ();
+
 			foreach (FieldDefinition field in type.Fields) {
 				// we can't dispose static fields in IDisposable
 				if (field.IsStatic)
@@ -116,12 +95,15 @@ namespace Gendarme.Rules.Design {
 				TypeDefinition fieldType = field.FieldType.GetElementType ().Resolve ();
 				if (fieldType == null)
 					continue;
-				// enums and primitives don't implement IDisposable
-				if (fieldType.IsEnum || fieldType.IsPrimitive)
-					continue;
-				if (fieldType.Implements ("System.IDisposable")) {
-					Runner.Report (field, Severity.High, Confidence.High,
-						abstractWarning ? AbstractTypeMessage : TypeMessage);
+				if (FieldTypeIsCandidate (fieldType))
+					FieldCandidates.Add (field);
+			}
+
+			// if there are fields types that implements IDisposable
+			if (type.HasMethods && (FieldCandidates.Count > 0)) {
+				// check if we're assigning new object to them
+				foreach (MethodDefinition method in type.Methods) {
+					CheckMethod (method, abstractWarning);
 				}
 			}
 
@@ -131,6 +113,15 @@ namespace Gendarme.Rules.Design {
 
 			return Runner.CurrentRuleResult;
 		}
+#if false
+		public void Bitmask ()
+		{
+			OpCodeBitmask mask = new OpCodeBitmask ();
+			mask.Set (Code.Stfld);
+			mask.Set (Code.Stelem_Ref);
+			Console.WriteLine (mask);
+		}
+#endif
 	}
 }
 

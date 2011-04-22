@@ -59,6 +59,9 @@ namespace Gendarme.Rules.BadPractice {
 	[Problem ("This method looks like it is not implemented or is incomplete.")]
 	[Solution ("Implement the method and/or make sure it's limitations are well documented.")]
 	[EngineDependency (typeof (OpCodeEngine))]
+	// part of CA1065 is implemented here instead of DoNotThrowInUnexpectedLocationRule so we need to be
+	// able to suppress it too, with the same [SuppressMessage], even if this rule has a larger scope
+	[FxCopCompatibility ("Microsoft.Design", "CA1065:DoNotRaiseExceptionsInUnexpectedLocations")]
 	public class DoNotForgetNotImplementedMethodsRule : Rule, IMethodRule {
 
 		// contains NEWOBJ and THROW instructions
@@ -90,7 +93,7 @@ namespace Gendarme.Rules.BadPractice {
 				if (inst.OpCode.Code != Code.Newobj)
 					continue;
 				MethodReference ctor = (MethodReference) inst.Operand;
-				if ("System.NotImplementedException" != ctor.DeclaringType.FullName)
+				if (!ctor.DeclaringType.IsNamed ("System", "NotImplementedException"))
 					continue;
 				if (inst.Next.OpCode.Code != Code.Throw)
 					continue;

@@ -25,6 +25,7 @@
 // THE SOFTWARE.
 
 using System;
+using System.Globalization;
 
 using Mono.Cecil;
 
@@ -76,7 +77,7 @@ namespace Gendarme.Rules.Design {
 		{
 			// rule doesn't apply on enums, interfaces, delegates or to compiler/tools-generated code
 			// e.g. CSC compiles anonymous methods as an inner type that expose public fields
-			if (type.IsEnum || type.IsInterface || type.IsDelegate () || type.IsGeneratedCode ())
+			if (type.IsEnum || type.IsInterface || !type.HasFields || type.IsDelegate () || type.IsGeneratedCode ())
 				return RuleResult.DoesNotApply;
 			
 			// rule doesn't apply to type non (externally) visible
@@ -89,11 +90,13 @@ namespace Gendarme.Rules.Design {
 
 				string name = fd.Name;
 				if (fd.FieldType.IsArray) {
-					string s = String.Format ("Consider changing the field '{0}' to a private or internal field and add a 'Set{1}{2}' method.",
-						name, Char.ToUpper (name [0]).ToString (), name.Substring (1));
+					string s = String.Format (CultureInfo.InvariantCulture, 
+						"Consider changing the field '{0}' to a private or internal field and add a 'Set{1}{2}' method.",
+						name, Char.ToUpper (name [0], CultureInfo.InvariantCulture).ToString (CultureInfo.InvariantCulture), name.Substring (1));
 					Runner.Report (fd, Severity.Medium, Confidence.Total, s);
 				} else {
-					string s = String.Format ("Field '{0}' should be private or internal and its value accessed through a property.", name);
+					string s = String.Format (CultureInfo.InvariantCulture, 
+						"Field '{0}' should be private or internal and its value accessed through a property.", name);
 					Runner.Report (fd, Severity.Medium, Confidence.Total, s);
 				}
 			}
