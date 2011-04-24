@@ -189,15 +189,11 @@ namespace Test.Rules.BadPractice {
 	[TestFixture]
 	public class PreferTryParseWithSuppressionsTest : MethodRuleTestFixture<PreferTryParseRule>
 	{
-		public static class DelegateHolder
-		{
-			public static Func<DateTime> Now = () => DateTime.Now;
-		}
 		public class SuppressionTest
 		{
 			public void ParseDateInDelegate()
 			{
-				DelegateHolder.Now = () => DateTime.Parse("4/6/2011 9:38:12 PM", CultureInfo.CurrentCulture);
+				Func<DateTime> foo = () => DateTime.Parse("5/15/2011 8:17:23 AM", CultureInfo.CurrentCulture);
 			}
 		}
 
@@ -210,8 +206,7 @@ namespace Test.Rules.BadPractice {
 				//the delegate in ParseDataInDelegate (which shows up as another method on the given type) should pick up the rule applied above, but doesn't
 				if (!method.IsConstructor)
 					AssertRuleDoesNotApply(method);
-			}
-			
+			}			
 		}
 	}
 }
