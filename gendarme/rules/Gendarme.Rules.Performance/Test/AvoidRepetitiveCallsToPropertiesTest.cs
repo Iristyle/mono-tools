@@ -77,6 +77,17 @@ namespace Test.Rules.Performance {
 					Integer, Message, Integer, Message);
 			}
 
+			public string MultipleCallsInSwitch(int test)
+			{
+				switch (test)
+				{
+					case 1:
+						return string.Format("{0}", Message);
+					default:
+						return string.Format("{0}", Message);
+				}
+			}
+
 			// make it large enough (by calling GetHashCode) not to be inlined
 			static Version Version {
 				get { return new Version (1.GetHashCode (), 2.GetHashCode (), 3.GetHashCode (), 4.GetHashCode ()); }
@@ -101,6 +112,12 @@ namespace Test.Rules.Performance {
 			// only Message (virtual) will trigger since Integer is small enough to be inlined
 			AssertRuleFailure<TestCase> ("Multiple", 1);
 			Assert.AreEqual (Severity.Medium, Runner.Defects [0].Severity, "Medium(2)");
+		}
+
+		[Test]
+		public void MultipleCallsInSwitch()
+		{
+			AssertRuleSuccess<TestCase>("MultipleCallsInSwitch");
 		}
 
 		[Test]
