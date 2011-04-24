@@ -126,17 +126,6 @@ namespace Test.Rules.Smells {
 		}
 	}
 
-    public class HelperClass
-    {
-        public string SqlEscape(string sql)
-        {
-            if (null == sql) { throw new ArgumentNullException("sql"); }
-
-            return sql.Replace("'", "''");
-        }
-    }
-
-
 	[TestFixture]
 	public class AvoidSpeculativeGeneralityTest : TypeRuleTestFixture<AvoidSpeculativeGeneralityRule> {
 
@@ -176,12 +165,18 @@ namespace Test.Rules.Smells {
 			AssertRuleSuccess<NotUnnecessaryDelegatedClass> ();
 		}
 
-        [Test]
-        public void HelperClassThatWrapsFrameworkFunctions()
-        {
-            //TODO: is this really speculative generality??
-            AssertRuleSuccess<HelperClass>();
-        }
-
+		[Test]
+		public void SuppressionAdheredTo()
+		{
+			//I have a pretty similar setup in production code where SuppressMessage is being used on a method in a type, but is being ignored and I'm getting a rule failure
+			// I checked the compiled metadata and the suppression is there, but it's not being correctly applied
+			// When running the code below, the ignore list is only looked at for the type AND then the types methods are checked individually when applying the rule
+			// so there's a bit of a mismatch between how the ignores are checked vs how the rule is run
+			// not sure if this same issue is present in other rules
+			TypeDefinition staticType = DefinitionLoader.GetTypeDefinition<UnnecessaryDelegatedClass>();
+			foreach (var method in staticType.Methods)
+				Runner.IgnoreList.Add("Gendarme.Rules.Smells.AvoidSpeculativeGeneralityRule", method); 
+			AssertRuleDoesNotApply<UnnecessaryDelegatedClass>();
+		}
 	}
 }
