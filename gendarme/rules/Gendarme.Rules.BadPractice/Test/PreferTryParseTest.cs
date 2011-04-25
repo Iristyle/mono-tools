@@ -33,6 +33,8 @@ using Gendarme.Rules.BadPractice;
 using NUnit.Framework;
 using Test.Rules.Definitions;
 using Test.Rules.Fixtures;
+using System.Diagnostics.CodeAnalysis;
+using Test.Rules.Helpers;
 
 namespace Test.Rules.BadPractice {
 
@@ -183,5 +185,28 @@ namespace Test.Rules.BadPractice {
 			AssertRuleSuccess<BadTryParse> ("CallParse");
 		}
 	}
-}
 
+	[TestFixture]
+	public class PreferTryParseWithSuppressionsTest : MethodRuleTestFixture<PreferTryParseRule>
+	{
+		public class SuppressionTest
+		{
+			public void ParseDateInDelegate()
+			{
+				Func<DateTime> foo = () => DateTime.Parse("5/15/2011 8:17:23 AM", CultureInfo.CurrentCulture);
+			}
+		}
+
+		[Test]
+		public void ProperlySuppresses()
+		{
+			Runner.IgnoreList.Add("Gendarme.Rules.BadPractice.PreferTryParseRule", DefinitionLoader.GetMethodDefinition<SuppressionTest>("ParseDateInDelegate"));
+			foreach (var method in DefinitionLoader.GetTypeDefinition<SuppressionTest>().Methods)
+			{
+				//the delegate in ParseDataInDelegate (which shows up as another method on the given type) should pick up the rule applied above, but doesn't
+				if (!method.IsConstructor)
+					AssertRuleDoesNotApply(method);
+			}			
+		}
+	}
+}

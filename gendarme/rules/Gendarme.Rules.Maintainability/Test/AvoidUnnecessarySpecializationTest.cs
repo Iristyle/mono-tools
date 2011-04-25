@@ -313,8 +313,40 @@ namespace Test.Rules.Maintainability {
 		}
 	}
 
+	class Config : IConfig
+	{
+		public string Name { get; set; }
+	}
+	class SpecializedConfig : Config, ISpecializedConfig
+	{
+		public int Number { get; set; }
+	}
+	interface IConfig
+	{
+		string Name { get; set; }
+	}
+	interface ISpecializedConfig : IConfig
+	{
+		int Number { get; set; }
+	}
+	abstract class ConfigAdapter<T> where T : Config, new()
+	{
+		public abstract string GetName(T config);
+	}
+	class SpecializedConfigAdapter : ConfigAdapter<SpecializedConfig>
+	{
+		//changing the below to ISpecializedConfig is not supported by the compiler
+		public override string GetName(SpecializedConfig config) { return config.Name; }
+	}
+
 	[TestFixture]
 	public class AvoidUnnecessarySpecializationTest : MethodRuleTestFixture<AvoidUnnecessarySpecializationRule> {
+
+		[Test]
+		public void UsesCorrectGenericType()
+		{
+			AssertRuleSuccess<SpecializedConfigAdapter>();
+		}
 
 		[Test]
 		public void NotApplicable ()

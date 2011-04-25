@@ -33,9 +33,12 @@ using Gendarme.Rules.Design;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using Test.Rules.Fixtures;
 using Test.Rules.Definitions;
+using Test.Rules.Helpers;
+using System.Reflection;
 
 namespace Test.Rules.Design {
 
@@ -220,6 +223,31 @@ namespace Test.Rules.Design {
 		}
 	}
 
+	class NestedParent
+	{
+		interface INestedInterface
+		{
+			DateTime GetCurrentDateTime();
+		}
+		class Nested : INestedInterface
+		{
+			public DateTime GetCurrentDateTime() { return DateTime.Now; }
+		}
+	}
+
+	class NestedParentTwo
+	{
+		//NOTE that if ILooksLikeNestedInterface is renamed to INestedInterface, then this is a success
+		interface ILooksLikeNestedInterface
+		{
+			DateTime GetCurrentDateTime();
+		}
+		class Nested : ILooksLikeNestedInterface
+		{
+			public DateTime GetCurrentDateTime() { return DateTime.Now; }
+		}
+	}
+
 	[TestFixture]
 	public class ConsiderAddingInterfaceTest : TypeRuleTestFixture<ConsiderAddingInterfaceRule> {
 
@@ -236,12 +264,21 @@ namespace Test.Rules.Design {
 		[Test]
 		public void Success ()
 		{
-			AssertRuleSuccess<INeverImplementedInterface> ();
-			AssertRuleSuccess<INeverImplementedInterface2> ();
-			AssertRuleSuccess<IAlreadyImplementedInterface> ();
-			AssertRuleSuccess<IBaseImplementedInterface> ();
-			AssertRuleSuccess<INotPubliclyImplementedInterface> ();
-			AssertRuleSuccess<IPartiallyImplementedInterface> ();
+			//rule fails to look at whether or not the interface is nested in a given type
+			foreach (var @interface in typeof(NestedParent).GetNestedTypes(BindingFlags.NonPublic).Where(t => t.IsInterface))
+				AssertRuleSuccess(DefinitionLoader.GetTypeDefinition(@interface));
+
+			//There is another bug above that manifests itself when the ILooksLikeNestedInterface is renamed
+			//to INestedInterface -- the code ultimately gets the right result, but for the wrong reason
+			// the bug is on line 170 of ConsiderAddingInterfaceRule.cs which calls out to line 260 of TypeRocks.cs -- if (type.IsInterface && Match (type, nameSpace, name))
+			// Test.Rules.Design.NestedParent/INestedInterface and Test.Rules.Design.NestedParentTwo/INestedInterface are treated as the same!
+
+			AssertRuleSuccess<INeverImplementedInterface>();
+			AssertRuleSuccess<INeverImplementedInterface2>();
+			AssertRuleSuccess<IAlreadyImplementedInterface>();
+			AssertRuleSuccess<IBaseImplementedInterface>();
+			AssertRuleSuccess<INotPubliclyImplementedInterface>();
+			AssertRuleSuccess<IPartiallyImplementedInterface>();
 		}
 
 		[Test]
